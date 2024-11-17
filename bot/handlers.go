@@ -26,7 +26,7 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 				b.API.Send(msg)
 
 			case "add":
-				b.AwaitingExpenses[chatID] = true
+				b.SetAwaitingExpense(chatID)
 				msg := tgbotapi.NewMessage(chatID,
 					"Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel.")
 				b.API.Send(msg)
@@ -42,6 +42,7 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 
 			case "cancel":
 				if b.AwaitingExpenses[chatID] {
+					b.ResetAwaitingExpense(chatID)
 					b.AwaitingExpenses[chatID] = false
 					msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
 					b.API.Send(msg)
@@ -65,7 +66,7 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 						storage.AddExpense(chatID, amount, category)
 						b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
 
-						b.AwaitingExpenses[chatID] = false
+						b.ResetAwaitingExpense(chatID)
 					} else {
 						msg := tgbotapi.NewMessage(chatID,
 							"Ошибка: введите расход в формате <сумма> <категория>.")
