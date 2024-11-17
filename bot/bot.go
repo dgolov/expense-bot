@@ -11,13 +11,13 @@ type Bot struct {
 	AwaitingExpenses  map[int64]bool
 }
 
-func NewBot(botToken string) *Bot  {
+func NewBot(botToken string, debugMode bool) *Bot  {
 	botAPI, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	botAPI.Debug = true
+	botAPI.Debug = debugMode
 	log.Printf("Authorized on account %s", botAPI.Self.UserName)
 
 	return &Bot{
