@@ -27,7 +27,8 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 
 			case "add":
 				b.AwaitingExpenses[chatID] = true
-				msg := tgbotapi.NewMessage(chatID, "Введите расход в формате: <сумма> <категория>")
+				msg := tgbotapi.NewMessage(chatID,
+					"Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel.")
 				b.API.Send(msg)
 
 			case "list":
@@ -39,13 +40,25 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 					b.API.Send(tgbotapi.NewMessage(chatID, msg))
 				}
 
+			case "cancel":
+				if b.AwaitingExpenses[chatID] {
+					b.AwaitingExpenses[chatID] = false
+					msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
+					b.API.Send(msg)
+				} else {
+					msg := tgbotapi.NewMessage(chatID, "Вы не находитесь в процессе добавления расхода.")
+					b.API.Send(msg)
+				}
+
 			default:
 				if b.AwaitingExpenses[chatID] {
 					if strings.Contains(update.Message.Text, " ") {
 						parts := strings.SplitN(update.Message.Text, "", 2)
 						amount, err := strconv.Atoi(parts[0])
 						if err != nil {
-							b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка: сумма должна быть числом."))
+							msg := tgbotapi.NewMessage(chatID,
+								"Ошибка: сумма должна быть числом.\nЕсли передумали, отправьте /cancel.")
+							b.API.Send(msg)
 							continue
 						}
 						category := parts[1]
@@ -54,7 +67,8 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 
 						b.AwaitingExpenses[chatID] = false
 					} else {
-						msg := tgbotapi.NewMessage(chatID, "Ошибка: введите расход в формате <сумма> <категория>.")
+						msg := tgbotapi.NewMessage(chatID,
+							"Ошибка: введите расход в формате <сумма> <категория>.")
 						b.API.Send(msg)
 					}
 				} else {
