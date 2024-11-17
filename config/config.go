@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	BotToken string
-	DebugMode bool
+	BotToken		  string
+	DebugMode 		  bool
+	TimeoutMinutes    int
 }
 
 func LoadConfig() *Config {
@@ -31,12 +32,25 @@ func LoadConfig() *Config {
 		debugMode, err = strconv.ParseBool(debugStr)
 		if err != nil {
 			log.Printf("Parsing DEBUG error: %v. Default value: false", err)
+		} else {
+			log.Printf("Debug: %t", debugMode)
 		}
-		log.Printf("Debug: %t", debugMode)
+	}
+
+	timeoutStr := os.Getenv("TIMEOUT_MINUTES")
+	timeoutMinutes := 5
+	if timeoutStr != "" {
+		timeoutMinutes, err = strconv.Atoi(timeoutStr)
+		if err != nil {
+			log.Printf("Parsing TIMEOUT_MINUTES error: %v. Default value: 5", err)
+		} else {
+			log.Printf("TIMEOUT_MINUTES: %v", timeoutMinutes)
+		}
 	}
 
 	return &Config{
 		BotToken: botToken,
 		DebugMode: debugMode,
+		TimeoutMinutes: timeoutMinutes,
 	}
 }
