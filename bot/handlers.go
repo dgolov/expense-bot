@@ -26,6 +26,7 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 				b.API.Send(msg)
 
 			case "add":
+				b.AwaitingExpenses[chatID] = true
 				msg := tgbotapi.NewMessage(chatID, "Введите расход в формате: <сумма> <категория>")
 				b.API.Send(msg)
 
@@ -39,16 +40,23 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 				}
 
 			default:
-				if strings.Contains(update.Message.Text, " ") {
-					parts := strings.SplitN(update.Message.Text ,"", 2)
-					amount, err := strconv.Atoi(parts[0])
-					if err != nil {
-						b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка: сумма должна быть числом."))
-						continue
+				if b.AwaitingExpenses[chatID] {
+					if strings.Contains(update.Message.Text, " ") {
+						parts := strings.SplitN(update.Message.Text, "", 2)
+						amount, err := strconv.Atoi(parts[0])
+						if err != nil {
+							b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка: сумма должна быть числом."))
+							continue
+						}
+						category := parts[1]
+						storage.AddExpense(chatID, amount, category)
+						b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
+
+						b.AwaitingExpenses[chatID] = false
+					} else {
+						msg := tgbotapi.NewMessage(chatID, "Ошибка: введите расход в формате <сумма> <категория>.")
+						b.API.Send(msg)
 					}
-					category := parts[1]
-					storage.AddExpense(chatID, amount, category)
-					b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
 				} else {
 					b.API.Send(tgbotapi.NewMessage(chatID, "Неизвестная команда."))
 				}

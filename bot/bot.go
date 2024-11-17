@@ -8,6 +8,7 @@ import (
 
 type Bot struct {
 	API *tgbotapi.BotAPI
+	AwaitingExpenses  map[int64]bool
 }
 
 func NewBot(botToken string) *Bot  {
@@ -19,5 +20,8 @@ func NewBot(botToken string) *Bot  {
 	botAPI.Debug = true
 	log.Printf("Authorized on account %s", botAPI.Self.UserName)
 
-	return &Bot{API: botAPI}
+	return &Bot{
+		API: botAPI,
+		AwaitingExpenses: make(map[int64]bool),
+	}
 }
