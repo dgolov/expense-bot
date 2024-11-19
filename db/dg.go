@@ -40,3 +40,12 @@ func (db *Database) InitializeSchema()  {
 	}
 	log.Println("Initialize schema successfully")
 }
+
+func (db *Database) AddExpenses(chatID int64, amount int, category string) error {
+	query := `INSERT INTO expenses (chat_id, amount, category) (?, ?, ?)`
+	_, err := db.conn.Exec(query, chatID, amount, category)
+	if err != nil {
+		return err
+	}
+	return nil
+}
