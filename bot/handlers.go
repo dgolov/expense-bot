@@ -1,7 +1,7 @@
 package bot
 
 import (
-	"expense-bot/models"
+	"expense-bot/db"
 	"log"
 	"strconv"
 	"strings"
@@ -9,7 +9,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func (b *Bot) HandleUpdates(storage *models.Storage)  {
+func (b *Bot) HandleUpdates(storage *db.Database)  {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -32,7 +32,12 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 				b.API.Send(msg)
 
 			case "list":
-				expenses := storage.ListExpenses(chatID)
+				expenses, err := storage.ListExpenses(chatID)
+				if err != nil {
+					log.Printf("Get expenses error: %v", err)
+					b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка при получении расходов."))
+					return
+				}
 				if len(expenses) == 0 {
 					b.API.Send(tgbotapi.NewMessage(chatID, "У вас пока нет расходов."))
 				} else {
@@ -63,8 +68,14 @@ func (b *Bot) HandleUpdates(storage *models.Storage)  {
 							continue
 						}
 						category := parts[1]
-						storage.AddExpense(chatID, amount, category)
-						b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
+						err = storage.AddExpenses(chatID, amount, category)
+						if err != nil {
+							log.Printf("Add expenses error: %v", err)
+							b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка добавления расходов."))
+							return
+						} else {
+							b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
+						}
 
 						b.ResetAwaitingExpense(chatID)
 					} else {

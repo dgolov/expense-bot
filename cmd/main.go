@@ -3,7 +3,7 @@ package main
 import (
 	"expense-bot/bot"
 	"expense-bot/config"
-	"expense-bot/models"
+	"expense-bot/db"
 	"log"
 )
 
@@ -11,8 +11,11 @@ func main()  {
 	log.Println("Bot is started")
 
 	cfg := config.LoadConfig()
-	expenseBot := bot.NewBot(cfg.BotToken, cfg.DebugMode, cfg.TimeoutMinutes)
-	storage := models.NewStorage()
 
-	expenseBot.HandleUpdates(storage)
+	database := db.NewDatabase("expenses.db")
+	defer database.Conn.Close()
+	database.InitializeSchema()
+
+	expenseBot := bot.NewBot(cfg.BotToken, cfg.DebugMode, cfg.TimeoutMinutes)
+	expenseBot.HandleUpdates(database)
 }
