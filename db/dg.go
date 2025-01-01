@@ -54,7 +54,13 @@ func (db *Database) AddExpenses(chatID int64, amount int, category string) error
 }
 
 func (db *Database) ListExpenses(chatID int64) ([]string, error) {
-	query := `SELECT amount, category, created_at FROM expenses WHERE chat_id = ? ORDER BY created_at DESC`
+	query := `
+		SELECT category, SUM(amount), MAX(created_at) 
+		FROM expenses 
+		WHERE chat_id = ? 
+		GROUP BY category
+		ORDER BY MAX(created_at) DESC
+	`
 	rows, err := db.Conn.Query(query, chatID)
 	if err != nil {
 		return nil, err
@@ -63,13 +69,16 @@ func (db *Database) ListExpenses(chatID int64) ([]string, error) {
 
 	var expenses []string
 	for rows.Next() {
-		var amount int
-		var category, createdAt string
-		err := rows.Scan(&amount, &category, &createdAt)
+		var category string
+		var totalAmount int
+		var lastUpdated string
+
+		err := rows.Scan(&category, &totalAmount, &lastUpdated)
 		if err != nil {
 			return nil, err
 		}
-		expenses = append(expenses, fmt.Sprintf("%d руб. на %s (%s)", amount, category, createdAt))
+
+		expenses = append(expenses, fmt.Sprintf("%d руб. на %s (%s)", totalAmount, category, lastUpdated))
 	}
 	return expenses, nil
 }
