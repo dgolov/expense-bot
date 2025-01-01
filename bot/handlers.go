@@ -59,7 +59,7 @@ func (b *Bot) HandleUpdates(storage *db.Database)  {
 			default:
 				if b.AwaitingExpenses[chatID] {
 					if strings.Contains(update.Message.Text, " ") {
-						parts := strings.SplitN(update.Message.Text, "", 2)
+						parts := strings.SplitN(update.Message.Text, " ", 2)
 						amount, err := strconv.Atoi(parts[0])
 						if err != nil {
 							msg := tgbotapi.NewMessage(chatID,
