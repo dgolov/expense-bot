@@ -16,6 +16,6 @@ func main()  {
 	defer database.Conn.Close()
 	database.InitializeSchema()
 
-	expenseBot := bot.NewBot(cfg.BotToken, cfg.DebugMode, cfg.TimeoutMinutes)
-	expenseBot.HandleUpdates(database)
+	expenseBot := bot.NewBot(cfg.BotToken, cfg.DebugMode, cfg.TimeoutMinutes, database)
+	expenseBot.HandleUpdates()
 }
