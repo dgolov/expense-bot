@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"expense-bot/db"
 	"log"
 	"strconv"
 	"strings"
@@ -9,84 +8,83 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func (b *Bot) HandleUpdates(storage *db.Database)  {
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+func handleStart(b *Bot, chatID int64) {
+	keyboard := GetMainKb()
+	msg := tgbotapi.NewMessage(chatID, "Добро пожаловать! Я помогу вам вести учет расходов.")
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+}
 
-	updates := b.API.GetUpdatesChan(u)
+func handleAdd(b *Bot, chatID int64)  {
+	keyboard := GetCancelKb()
+	b.SetAwaitingExpense(chatID)
+	msgText := "Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel."
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+}
 
-	for update := range updates {
-		if update.Message != nil {
-			chatID := update.Message.Chat.ID
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+func handleSave(b *Bot, text string, chatID int64) {
+	parts := strings.SplitN(text, " ", 2)
+	amount, err := strconv.Atoi(parts[0])
+	if err != nil {
+		msgText := "Ошибка: сумма должна быть числом.\nЕсли передумали, отправьте /cancel."
+		msg := tgbotapi.NewMessage(chatID, msgText)
+		b.API.Send(msg)
+		return
+	}
 
-			switch update.Message.Command() {
-			case "start":
-				msg := tgbotapi.NewMessage(chatID, "Добро пожаловать! Я помогу вам вести учет расходов.")
-				b.API.Send(msg)
+	keyboard := GetMainKb()
 
-			case "add":
-				b.SetAwaitingExpense(chatID)
-				msg := tgbotapi.NewMessage(chatID,
-					"Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel.")
-				b.API.Send(msg)
+	category := parts[1]
+	err = b.Storage.AddExpenses(chatID, amount, category)
+	if err != nil {
+		log.Printf("Add expenses error: %v", err)
+		msg := tgbotapi.NewMessage(chatID, "Ошибка добавления расходов.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+		return
+	} else {
+		msg := tgbotapi.NewMessage(chatID, "Расход добавлен!")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	}
 
-			case "list":
-				expenses, err := storage.ListExpenses(chatID)
-				if err != nil {
-					log.Printf("Get expenses error: %v", err)
-					b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка при получении расходов."))
-					return
-				}
-				if len(expenses) == 0 {
-					b.API.Send(tgbotapi.NewMessage(chatID, "У вас пока нет расходов."))
-				} else {
-					msg := "Ваши расходы:\n" + strings.Join(expenses, "\n")
-					b.API.Send(tgbotapi.NewMessage(chatID, msg))
-				}
+	b.ResetAwaitingExpense(chatID)
+}
 
-			case "cancel":
-				if b.AwaitingExpenses[chatID] {
-					b.ResetAwaitingExpense(chatID)
-					b.AwaitingExpenses[chatID] = false
-					msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
-					b.API.Send(msg)
-				} else {
-					msg := tgbotapi.NewMessage(chatID, "Вы не находитесь в процессе добавления расхода.")
-					b.API.Send(msg)
-				}
+func handleList(b *Bot, chatID int64) {
+	keyboard := GetMainKb()
+	expenses, err := b.Storage.ListExpenses(chatID)
+	if err != nil {
+		log.Printf("Get expenses error: %v", err)
+		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+		return
+	}
+	if len(expenses) == 0 {
+		msg := tgbotapi.NewMessage(chatID, "У вас пока нет расходов.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else {
+		msg := tgbotapi.NewMessage(chatID, "Ваши расходы:\n" + strings.Join(expenses, "\n"))
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	}
+}
 
-			default:
-				if b.AwaitingExpenses[chatID] {
-					if strings.Contains(update.Message.Text, " ") {
-						parts := strings.SplitN(update.Message.Text, "", 2)
-						amount, err := strconv.Atoi(parts[0])
-						if err != nil {
-							msg := tgbotapi.NewMessage(chatID,
-								"Ошибка: сумма должна быть числом.\nЕсли передумали, отправьте /cancel.")
-							b.API.Send(msg)
-							continue
-						}
-						category := parts[1]
-						err = storage.AddExpenses(chatID, amount, category)
-						if err != nil {
-							log.Printf("Add expenses error: %v", err)
-							b.API.Send(tgbotapi.NewMessage(chatID, "Ошибка добавления расходов."))
-							return
-						} else {
-							b.API.Send(tgbotapi.NewMessage(chatID, "Расход добавлен!"))
-						}
-
-						b.ResetAwaitingExpense(chatID)
-					} else {
-						msg := tgbotapi.NewMessage(chatID,
-							"Ошибка: введите расход в формате <сумма> <категория>.")
-						b.API.Send(msg)
-					}
-				} else {
-					b.API.Send(tgbotapi.NewMessage(chatID, "Неизвестная команда."))
-				}
-			}
-		}
+func handleCancel(b *Bot, chatID int64) {
+	keyboard := GetMainKb()
+	if b.AwaitingExpenses[chatID] {
+		b.ResetAwaitingExpense(chatID)
+		b.AwaitingExpenses[chatID] = false
+		msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else {
+		msg := tgbotapi.NewMessage(chatID, "Вы не находитесь в процессе добавления расхода.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
 	}
 }
