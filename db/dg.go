@@ -58,6 +58,7 @@ func (db *Database) ListExpenses(chatID int64) ([]string, error) {
 		SELECT category, SUM(amount), MAX(created_at) 
 		FROM expenses 
 		WHERE chat_id = ? 
+			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
 		GROUP BY category
 		ORDER BY MAX(created_at) DESC
 	`

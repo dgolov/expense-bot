@@ -64,11 +64,11 @@ func handleList(b *Bot, chatID int64) {
 		return
 	}
 	if len(expenses) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "У вас пока нет расходов.")
+		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
-		msg := tgbotapi.NewMessage(chatID, "Ваши расходы:\n" + strings.Join(expenses, "\n"))
+		msg := tgbotapi.NewMessage(chatID, "Ваши расходы за текущий месяц:\n" + strings.Join(expenses, "\n"))
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	}
