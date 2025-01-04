@@ -104,15 +104,20 @@ func (b *Bot) HandleUpdates()  {
 }
 
 func (b *Bot) checkMessage(text string, chatID int64) int8 {
+	text = strings.ToLower(text)
 	switch text {
-	case "Добавить":
+	case "добавить":
 		handleAdd(b, chatID)
 		return 1
-	case "Список":
+	case "список":
 		handleList(b, chatID)
 		return 1
-	case "Отмена":
+	case "отмена":
 		handleCancel(b, chatID)
+		return 1
+	}
+	if strings.Contains(text, "список") {
+		handleListByCategory(b, chatID, text)
 		return 1
 	}
 	return 0

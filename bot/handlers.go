@@ -74,6 +74,10 @@ func handleList(b *Bot, chatID int64) {
 	}
 }
 
+func handleListByCategory(b *Bot, chatID int64, text string) {
+	log.Println("handleListByCategory")
+}
+
 func handleCancel(b *Bot, chatID int64) {
 	keyboard := GetMainKb()
 	if b.AwaitingExpenses[chatID] {
