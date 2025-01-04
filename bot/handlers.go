@@ -9,6 +9,7 @@ import (
 )
 
 func handleStart(b *Bot, chatID int64) {
+	log.Println("Handler start")
 	keyboard := GetMainKb()
 	msg := tgbotapi.NewMessage(chatID, "Добро пожаловать! Я помогу вам вести учет расходов.")
 	msg.ReplyMarkup = keyboard
@@ -16,6 +17,7 @@ func handleStart(b *Bot, chatID int64) {
 }
 
 func handleAdd(b *Bot, chatID int64)  {
+	log.Println("Handler add")
 	keyboard := GetCancelKb()
 	b.SetAwaitingExpense(chatID)
 	msgText := "Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel."
@@ -25,6 +27,7 @@ func handleAdd(b *Bot, chatID int64)  {
 }
 
 func handleSave(b *Bot, text string, chatID int64) {
+	log.Println("Handler save")
 	parts := strings.SplitN(text, " ", 2)
 	amount, err := strconv.Atoi(parts[0])
 	if err != nil {
@@ -54,6 +57,7 @@ func handleSave(b *Bot, text string, chatID int64) {
 }
 
 func handleList(b *Bot, chatID int64) {
+	log.Println("Handler list")
 	keyboard := GetMainKb()
 	expenses, err := b.Storage.ListExpenses(chatID)
 	if err != nil {
@@ -75,6 +79,7 @@ func handleList(b *Bot, chatID int64) {
 }
 
 func handleListByCategory(b *Bot, chatID int64, text string) {
+	log.Println("Handler list by category")
 	parts := strings.SplitN(text, " ", 2)
 	category := parts[1]
 	keyboard := GetMainKb()
@@ -99,6 +104,7 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 }
 
 func handleCancel(b *Bot, chatID int64) {
+	log.Println("Handler cancel")
 	keyboard := GetMainKb()
 	if b.AwaitingExpenses[chatID] {
 		b.ResetAwaitingExpense(chatID)
