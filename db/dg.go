@@ -68,6 +68,29 @@ func (db *Database) ListExpenses(chatID int64) ([]string, error) {
 	}
 	defer rows.Close()
 
+	return execListExpensesQuery(rows)
+}
+
+func (db *Database) ListExpensesByCategory(chatID int64, category string) ([]string, error) {
+	query := `
+		SELECT category, SUM(amount), MAX(created_at) 
+		FROM expenses 
+		WHERE chat_id = ? 
+			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+			AND category = ?
+		GROUP BY category
+		ORDER BY MAX(created_at) DESC
+	`
+	rows, err := db.Conn.Query(query, chatID, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return execListExpensesQuery(rows)
+}
+
+func execListExpensesQuery(rows *sql.Rows) ([]string, error) {
 	var expenses []string
 	for rows.Next() {
 		var category string
