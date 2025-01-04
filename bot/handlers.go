@@ -72,7 +72,12 @@ func handleList(b *Bot, chatID int64) {
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
-		msg := tgbotapi.NewMessage(chatID, "Ваши расходы за текущий месяц:\n" + strings.Join(expenses, "\n"))
+		var expensesTxtList []string
+		for _, itemExpense  := range expenses {
+			expensesTxtList = append(expensesTxtList, itemExpense.GetTextWithCategory())
+		}
+		msgTxt := "Ваши расходы за текущий месяц:\n" + strings.Join(expensesTxtList, "\n")
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	}
@@ -91,12 +96,18 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 		b.API.Send(msg)
 		return
 	}
+
 	if len(expenses) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов по категории" + category + ".")
+		msgTxt := "За текущий месяцу у вас пока нет расходов по категории" + category + "."
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
-		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expenses, "\n")
+		var expensesTxtList []string
+		for _, itemExpense  := range expenses {
+			expensesTxtList = append(expensesTxtList, itemExpense.GetText())
+		}
+		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expensesTxtList, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
