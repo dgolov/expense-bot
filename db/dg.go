@@ -68,7 +68,20 @@ func (db *Database) ListExpenses(chatID int64) ([]string, error) {
 	}
 	defer rows.Close()
 
-	return execListExpensesQuery(rows)
+	var expenses []string
+	for rows.Next() {
+		var category string
+		var totalAmount int
+		var lastUpdated string
+
+		err := rows.Scan(&category, &totalAmount, &lastUpdated)
+		if err != nil {
+			return nil, err
+		}
+
+		expenses = append(expenses, fmt.Sprintf("%d руб. на %s (%s)", totalAmount, category, lastUpdated))
+	}
+	return expenses, nil
 }
 
 func (db *Database) ListExpensesByCategory(chatID int64, category string) ([]string, error) {
@@ -87,10 +100,6 @@ func (db *Database) ListExpensesByCategory(chatID int64, category string) ([]str
 	}
 	defer rows.Close()
 
-	return execListExpensesQuery(rows)
-}
-
-func execListExpensesQuery(rows *sql.Rows) ([]string, error) {
 	var expenses []string
 	for rows.Next() {
 		var category string
@@ -102,7 +111,7 @@ func execListExpensesQuery(rows *sql.Rows) ([]string, error) {
 			return nil, err
 		}
 
-		expenses = append(expenses, fmt.Sprintf("%d руб. на %s (%s)", totalAmount, category, lastUpdated))
+		expenses = append(expenses, fmt.Sprintf("%d руб. (%s)", totalAmount, lastUpdated))
 	}
 	return expenses, nil
 }
