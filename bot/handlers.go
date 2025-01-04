@@ -96,7 +96,7 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
-		msgTxt := "Ваши расходы за текущий месяц на " + category + ": " + strings.Join(expenses, "\n")
+		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expenses, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
