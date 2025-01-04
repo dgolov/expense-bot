@@ -75,7 +75,27 @@ func handleList(b *Bot, chatID int64) {
 }
 
 func handleListByCategory(b *Bot, chatID int64, text string) {
-	log.Println("handleListByCategory")
+	parts := strings.SplitN(text, " ", 2)
+	category := parts[1]
+	keyboard := GetMainKb()
+	expenses, err := b.Storage.ListExpensesByCategory(chatID, category)
+	if err != nil {
+		log.Printf("Get expenses error: %v", err)
+		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории" + category + ".")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+		return
+	}
+	if len(expenses) == 0 {
+		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов по категории" + category + ".")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else {
+		msgTxt := "Ваши расходы за текущий месяц на " + category + ": " + strings.Join(expenses, "\n")
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	}
 }
 
 func handleCancel(b *Bot, chatID int64) {
