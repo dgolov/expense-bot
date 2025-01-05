@@ -78,7 +78,7 @@ func (b *Bot) HandleUpdates()  {
 	for update := range updates {
 		if update.Message != nil {
 			chatID := update.Message.Chat.ID
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+			log.Printf("User: [%s] - %s", update.Message.From.UserName, update.Message.Text)
 
 			switch update.Message.Command() {
 			case "start":
@@ -104,16 +104,24 @@ func (b *Bot) HandleUpdates()  {
 }
 
 func (b *Bot) checkMessage(text string, chatID int64) int8 {
+	text = strings.ToLower(text)
+
 	switch text {
-	case "Добавить":
+	case "добавить":
 		handleAdd(b, chatID)
 		return 1
-	case "Список":
+	case "список":
 		handleList(b, chatID)
 		return 1
-	case "Отмена":
+	case "отмена":
 		handleCancel(b, chatID)
 		return 1
 	}
+
+	if strings.Contains(text, "список") {
+		handleListByCategory(b, chatID, text)
+		return 1
+	}
+
 	return 0
 }

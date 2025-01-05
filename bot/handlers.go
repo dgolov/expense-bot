@@ -9,6 +9,7 @@ import (
 )
 
 func handleStart(b *Bot, chatID int64) {
+	log.Println("Handler start")
 	keyboard := GetMainKb()
 	msg := tgbotapi.NewMessage(chatID, "Добро пожаловать! Я помогу вам вести учет расходов.")
 	msg.ReplyMarkup = keyboard
@@ -16,6 +17,7 @@ func handleStart(b *Bot, chatID int64) {
 }
 
 func handleAdd(b *Bot, chatID int64)  {
+	log.Println("Handler add")
 	keyboard := GetCancelKb()
 	b.SetAwaitingExpense(chatID)
 	msgText := "Введите расход в формате: <сумма> <категория>.\nЕсли передумали, отправьте /cancel."
@@ -25,6 +27,7 @@ func handleAdd(b *Bot, chatID int64)  {
 }
 
 func handleSave(b *Bot, text string, chatID int64) {
+	log.Println("Handler save")
 	parts := strings.SplitN(text, " ", 2)
 	amount, err := strconv.Atoi(parts[0])
 	if err != nil {
@@ -54,6 +57,7 @@ func handleSave(b *Bot, text string, chatID int64) {
 }
 
 func handleList(b *Bot, chatID int64) {
+	log.Println("Handler list")
 	keyboard := GetMainKb()
 	expenses, err := b.Storage.ListExpenses(chatID)
 	if err != nil {
@@ -64,17 +68,54 @@ func handleList(b *Bot, chatID int64) {
 		return
 	}
 	if len(expenses) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "У вас пока нет расходов.")
+		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
-		msg := tgbotapi.NewMessage(chatID, "Ваши расходы:\n" + strings.Join(expenses, "\n"))
+		var expensesTxtList []string
+		for _, itemExpense  := range expenses {
+			expensesTxtList = append(expensesTxtList, itemExpense.GetTextWithCategory())
+		}
+		msgTxt := "Ваши расходы за текущий месяц:\n" + strings.Join(expensesTxtList, "\n")
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	}
+}
+
+func handleListByCategory(b *Bot, chatID int64, text string) {
+	log.Println("Handler list by category")
+	parts := strings.SplitN(text, " ", 2)
+	category := parts[1]
+	keyboard := GetMainKb()
+	expenses, err := b.Storage.ListExpensesByCategory(chatID, category)
+	if err != nil {
+		log.Printf("Get expenses error: %v", err)
+		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории" + category + ".")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+		return
+	}
+
+	if len(expenses) == 0 {
+		msgTxt := "За текущий месяцу у вас пока нет расходов по категории" + category + "."
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else {
+		var expensesTxtList []string
+		for _, itemExpense  := range expenses {
+			expensesTxtList = append(expensesTxtList, itemExpense.GetText())
+		}
+		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expensesTxtList, "\n")
+		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	}
 }
 
 func handleCancel(b *Bot, chatID int64) {
+	log.Println("Handler cancel")
 	keyboard := GetMainKb()
 	if b.AwaitingExpenses[chatID] {
 		b.ResetAwaitingExpense(chatID)

@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	_ "modernc.org/sqlite"
@@ -53,11 +52,12 @@ func (db *Database) AddExpenses(chatID int64, amount int, category string) error
 	return nil
 }
 
-func (db *Database) ListExpenses(chatID int64) ([]string, error) {
+func (db *Database) ListExpenses(chatID int64) ([]*Expense, error) {
 	query := `
 		SELECT category, SUM(amount), MAX(created_at) 
 		FROM expenses 
 		WHERE chat_id = ? 
+			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
 		GROUP BY category
 		ORDER BY MAX(created_at) DESC
 	`
@@ -67,18 +67,47 @@ func (db *Database) ListExpenses(chatID int64) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var expenses []string
+	return execListExpensesQuery(rows)
+}
+
+func (db *Database) ListExpensesByCategory(chatID int64, category string) ([]*Expense, error) {
+	query := `
+		SELECT category, amount, created_at
+		FROM expenses 
+		WHERE chat_id = ? 
+			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+			AND category = ?
+		ORDER BY created_at DESC
+	`
+	rows, err := db.Conn.Query(query, chatID, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return execListExpensesQuery(rows)
+}
+
+func execListExpensesQuery(rows *sql.Rows) ([]*Expense, error) {
+	var expenses []*Expense
+
 	for rows.Next() {
 		var category string
-		var totalAmount int
-		var lastUpdated string
+		var amount int
+		var createdAt string
 
-		err := rows.Scan(&category, &totalAmount, &lastUpdated)
+		err := rows.Scan(&category, &amount, &createdAt)
 		if err != nil {
 			return nil, err
 		}
 
-		expenses = append(expenses, fmt.Sprintf("%d руб. на %s (%s)", totalAmount, category, lastUpdated))
+		expense := &Expense{
+			Amount: amount,
+			Category: category,
+			CreatedAt: createdAt,
+		}
+
+		expenses = append(expenses, expense)
 	}
 	return expenses, nil
 }
