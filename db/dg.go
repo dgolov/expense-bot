@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "modernc.org/sqlite"
@@ -52,15 +53,40 @@ func (db *Database) AddExpenses(chatID int64, amount int, category string) error
 	return nil
 }
 
-func (db *Database) ListExpenses(chatID int64) ([]*Expense, error) {
-	query := `
-		SELECT category, SUM(amount), MAX(created_at) 
-		FROM expenses 
-		WHERE chat_id = ? 
-			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
-		GROUP BY category
-		ORDER BY MAX(created_at) DESC
-	`
+func (db *Database) ListExpenses(chatID int64, period string) ([]*Expense, error) {
+	var query string
+	switch period {
+	case "day":
+		query = `
+			SELECT category, SUM(amount), MAX(created_at) 
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND strftime('%Y-%m-%d', created_at) = strftime('%Y-%m-%d', 'now')
+			GROUP BY category
+			ORDER BY MAX(created_at) DESC
+		`
+	case "week":
+		query = `
+			SELECT category, SUM(amount), MAX(created_at) 
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND created_at >= datetime('now', '- 7 days')
+			GROUP BY category
+			ORDER BY MAX(created_at) DESC
+		`
+	case "month":
+		query = `
+			SELECT category, SUM(amount), MAX(created_at) 
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+			GROUP BY category
+			ORDER BY MAX(created_at) DESC
+		`
+	default:
+		return nil, fmt.Errorf("Invalid period: %s", period)
+	}
+
 	rows, err := db.Conn.Query(query, chatID)
 	if err != nil {
 		return nil, err

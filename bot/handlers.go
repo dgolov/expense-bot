@@ -59,7 +59,8 @@ func handleSave(b *Bot, text string, chatID int64) {
 func handleList(b *Bot, chatID int64) {
 	log.Println("Handler list")
 	keyboard := GetMainKb()
-	expenses, err := b.Storage.ListExpenses(chatID)
+
+	expenses, err := b.Storage.ListExpenses(chatID, "month")
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
 		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов.")
@@ -67,6 +68,7 @@ func handleList(b *Bot, chatID int64) {
 		b.API.Send(msg)
 		return
 	}
+
 	if len(expenses) == 0 {
 		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов.")
 		msg.ReplyMarkup = keyboard
