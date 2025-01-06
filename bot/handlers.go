@@ -90,10 +90,10 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 	parts := strings.SplitN(text, " ", 2)
 	category := parts[1]
 	keyboard := GetMainKb()
-	expenses, err := b.Storage.ListExpensesByCategory(chatID, category)
+	expenses, err := b.Storage.ListExpensesByCategory(chatID, category, "month")
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
-		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории" + category + ".")
+		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории " + category + ".")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 		return

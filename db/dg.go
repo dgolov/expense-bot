@@ -55,6 +55,7 @@ func (db *Database) AddExpenses(chatID int64, amount int, category string) error
 
 func (db *Database) ListExpenses(chatID int64, period string) ([]*Expense, error) {
 	var query string
+
 	switch period {
 	case "day":
 		query = `
@@ -96,15 +97,41 @@ func (db *Database) ListExpenses(chatID int64, period string) ([]*Expense, error
 	return execListExpensesQuery(rows)
 }
 
-func (db *Database) ListExpensesByCategory(chatID int64, category string) ([]*Expense, error) {
-	query := `
-		SELECT category, amount, created_at
-		FROM expenses 
-		WHERE chat_id = ? 
-			AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
-			AND category = ?
-		ORDER BY created_at DESC
-	`
+func (db *Database) ListExpensesByCategory(chatID int64, category string, period string) ([]*Expense, error) {
+	var query string
+
+	switch period {
+	case "day":
+		query = `
+			SELECT category, amount, created_at
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND strftime('%Y-%m-%d', created_at) = strftime('%Y-%m-%d', 'now')
+				AND category = ?
+			ORDER BY created_at DESC
+		`
+	case "week":
+		query = `
+			SELECT category, amount, created_at
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND created_at >= datetime('now', '- 7 days')
+				AND category = ?
+			ORDER BY created_at DESC
+		`
+	case "month":
+		query = `
+			SELECT category, amount, created_at
+			FROM expenses 
+			WHERE chat_id = ? 
+				AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+				AND category = ?
+			ORDER BY created_at DESC
+		`
+	default:
+		return nil, fmt.Errorf("Invalid period: %s", period)
+	}
+
 	rows, err := db.Conn.Query(query, chatID, category)
 	if err != nil {
 		return nil, err
