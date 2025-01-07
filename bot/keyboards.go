@@ -8,6 +8,24 @@ func GetMainKb() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("Добавить"),
 			tgbotapi.NewKeyboardButton("Список"),
 		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Настройки"),
+		),
+	)
+	return keyboard
+}
+
+
+func SettingsKb() tgbotapi.ReplyKeyboardMarkup {
+	keyboard := tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("День"),
+			tgbotapi.NewKeyboardButton("Неделя"),
+			tgbotapi.NewKeyboardButton("Месяц"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Отмена"),
+		),
 	)
 	return keyboard
 }
