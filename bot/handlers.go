@@ -36,6 +36,22 @@ func handleSettings(b *Bot, chatID int64)  {
 	b.API.Send(msg)
 }
 
+func handleSetPeriod(b *Bot, chatID int64, period string)  {
+	var msgText string
+	log.Println("Handler set period")
+	keyboard := GetMainKb()
+
+	if b.AwaitingSettings[chatID] {
+		msgText = "Выбран период учета расходов - " + period + "."
+		b.SetPeriod(period)
+	} else {
+		msgText = "Вы не находитесь в режиме настроек.\nДля перехода, отправьте /settings."
+	}
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+}
+
 func handleSave(b *Bot, text string, chatID int64) {
 	log.Println("Handler save")
 	parts := strings.SplitN(text, " ", 2)
@@ -70,7 +86,7 @@ func handleList(b *Bot, chatID int64) {
 	log.Println("Handler list")
 	keyboard := GetMainKb()
 
-	expenses, err := b.Storage.ListExpenses(chatID, "month")
+	expenses, err := b.Storage.ListExpenses(chatID, b.Period)
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
 		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов.")
@@ -100,7 +116,7 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 	parts := strings.SplitN(text, " ", 2)
 	category := parts[1]
 	keyboard := GetMainKb()
-	expenses, err := b.Storage.ListExpensesByCategory(chatID, category, "month")
+	expenses, err := b.Storage.ListExpensesByCategory(chatID, category, b.Period)
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
 		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории " + category + ".")
