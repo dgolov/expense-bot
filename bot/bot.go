@@ -102,6 +102,11 @@ func (b *Bot) ResetAwaitingSettings(chatID int64) {
 	}
 }
 
+func (b *Bot) SetPeriod(period string)  {
+	log.Printf("Set period - %s", period)
+	b.Period = period
+}
+
 func (b *Bot) HandleUpdates()  {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -121,6 +126,12 @@ func (b *Bot) HandleUpdates()  {
 				handleList(b, chatID)
 			case "settings":
 				handleSettings(b, chatID)
+			case "day":
+				handleSetPeriod(b, chatID, "day")
+			case "week":
+				handleSetPeriod(b, chatID, "week")
+			case "month":
+				handleSetPeriod(b, chatID, "month")
 			case "cancel":
 				handleCancel(b, chatID)
 			default:
@@ -152,6 +163,15 @@ func (b *Bot) checkMessage(text string, chatID int64) int8 {
 		return 1
 	case "настройки":
 		handleSettings(b, chatID)
+		return 1
+	case "день":
+		handleSetPeriod(b, chatID, "day")
+		return 1
+	case "неделя":
+		handleSetPeriod(b, chatID, "week")
+		return 1
+	case "месяц":
+		handleSetPeriod(b, chatID, "month")
 		return 1
 	}
 
