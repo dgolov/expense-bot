@@ -50,6 +50,8 @@ func handleSetPeriod(b *Bot, chatID int64, period string)  {
 	msg := tgbotapi.NewMessage(chatID, msgText)
 	msg.ReplyMarkup = keyboard
 	b.API.Send(msg)
+
+	b.ResetAwaitingSettings(chatID)
 }
 
 func handleSave(b *Bot, text string, chatID int64) {
@@ -95,8 +97,9 @@ func handleList(b *Bot, chatID int64) {
 		return
 	}
 
+	period := TranslatePeriod(b.Period)
 	if len(expenses) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов.")
+		msg := tgbotapi.NewMessage(chatID, "За " + period + " у вас пока нет расходов.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
@@ -104,7 +107,8 @@ func handleList(b *Bot, chatID int64) {
 		for _, itemExpense  := range expenses {
 			expensesTxtList = append(expensesTxtList, itemExpense.GetTextWithCategory())
 		}
-		msgTxt := "Ваши расходы за текущий месяц:\n" + strings.Join(expensesTxtList, "\n")
+
+		msgTxt := "Ваши расходы за " + period + ":\n" + strings.Join(expensesTxtList, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
@@ -125,8 +129,9 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 		return
 	}
 
+	period := TranslatePeriod(b.Period)
 	if len(expenses) == 0 {
-		msgTxt := "За текущий месяцу у вас пока нет расходов по категории" + category + "."
+		msgTxt := "За " + period + " у вас пока нет расходов по категории" + category + "."
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
@@ -135,7 +140,8 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 		for _, itemExpense  := range expenses {
 			expensesTxtList = append(expensesTxtList, itemExpense.GetText())
 		}
-		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expensesTxtList, "\n")
+		msgTxt := "Ваши расходы за " + period + " на " + category + ":\n"
+		msgTxt = msgTxt + strings.Join(expensesTxtList, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
