@@ -15,7 +15,6 @@ func GetMainKb() tgbotapi.ReplyKeyboardMarkup {
 	return keyboard
 }
 
-
 func SettingsKb() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
