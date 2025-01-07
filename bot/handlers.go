@@ -26,6 +26,16 @@ func handleAdd(b *Bot, chatID int64)  {
 	b.API.Send(msg)
 }
 
+func handleSettings(b *Bot, chatID int64)  {
+	log.Println("Handler settings")
+	keyboard := SettingsKb()
+	b.SetAwaitingSettings(chatID)
+	msgText := "Укажите период за который нужно учитывать расходы.\nЕсли передумали, отправьте /cancel."
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+}
+
 func handleSave(b *Bot, text string, chatID int64) {
 	log.Println("Handler save")
 	parts := strings.SplitN(text, " ", 2)
@@ -123,6 +133,12 @@ func handleCancel(b *Bot, chatID int64) {
 		b.ResetAwaitingExpense(chatID)
 		b.AwaitingExpenses[chatID] = false
 		msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else if b.AwaitingSettings[chatID]  {
+		b.ResetAwaitingSettings(chatID)
+		b.AwaitingSettings[chatID] = false
+		msg := tgbotapi.NewMessage(chatID, "Выход из режима настроек.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
