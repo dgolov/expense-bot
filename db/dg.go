@@ -71,7 +71,7 @@ func (db *Database) ListExpenses(chatID int64, period string) ([]*Expense, error
 			SELECT category, SUM(amount), MAX(created_at) 
 			FROM expenses 
 			WHERE chat_id = ? 
-				AND created_at >= datetime('now', '- 7 days')
+				AND created_at >= datetime('now', '-7 days')
 			GROUP BY category
 			ORDER BY MAX(created_at) DESC
 		`
@@ -115,7 +115,7 @@ func (db *Database) ListExpensesByCategory(chatID int64, category string, period
 			SELECT category, amount, created_at
 			FROM expenses 
 			WHERE chat_id = ? 
-				AND created_at >= datetime('now', '- 7 days')
+				AND created_at >= datetime('now', '-7 days')
 				AND category = ?
 			ORDER BY created_at DESC
 		`
