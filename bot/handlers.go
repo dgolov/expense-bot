@@ -26,6 +26,34 @@ func handleAdd(b *Bot, chatID int64)  {
 	b.API.Send(msg)
 }
 
+func handleSettings(b *Bot, chatID int64)  {
+	log.Println("Handler settings")
+	keyboard := SettingsKb()
+	b.SetAwaitingSettings(chatID)
+	msgText := "Укажите период за который нужно учитывать расходы.\nЕсли передумали, отправьте /cancel."
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+}
+
+func handleSetPeriod(b *Bot, chatID int64, period string)  {
+	var msgText string
+	log.Println("Handler set period")
+	keyboard := GetMainKb()
+
+	if b.AwaitingSettings[chatID] {
+		msgText = "Выбран период учета расходов - " + period + "."
+		b.SetPeriod(period)
+	} else {
+		msgText = "Вы не находитесь в режиме настроек.\nДля перехода, отправьте /settings."
+	}
+	msg := tgbotapi.NewMessage(chatID, msgText)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
+
+	b.ResetAwaitingSettings(chatID)
+}
+
 func handleSave(b *Bot, text string, chatID int64) {
 	log.Println("Handler save")
 	parts := strings.SplitN(text, " ", 2)
@@ -59,7 +87,8 @@ func handleSave(b *Bot, text string, chatID int64) {
 func handleList(b *Bot, chatID int64) {
 	log.Println("Handler list")
 	keyboard := GetMainKb()
-	expenses, err := b.Storage.ListExpenses(chatID)
+
+	expenses, err := b.Storage.ListExpenses(chatID, b.Period)
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
 		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов.")
@@ -67,8 +96,10 @@ func handleList(b *Bot, chatID int64) {
 		b.API.Send(msg)
 		return
 	}
+
+	period := TranslatePeriod(b.Period)
 	if len(expenses) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "За текущий месяцу у вас пока нет расходов.")
+		msg := tgbotapi.NewMessage(chatID, "За " + period + " у вас пока нет расходов.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
@@ -76,7 +107,8 @@ func handleList(b *Bot, chatID int64) {
 		for _, itemExpense  := range expenses {
 			expensesTxtList = append(expensesTxtList, itemExpense.GetTextWithCategory())
 		}
-		msgTxt := "Ваши расходы за текущий месяц:\n" + strings.Join(expensesTxtList, "\n")
+
+		msgTxt := "Ваши расходы за " + period + ":\n" + strings.Join(expensesTxtList, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
@@ -88,17 +120,18 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 	parts := strings.SplitN(text, " ", 2)
 	category := parts[1]
 	keyboard := GetMainKb()
-	expenses, err := b.Storage.ListExpensesByCategory(chatID, category)
+	expenses, err := b.Storage.ListExpensesByCategory(chatID, category, b.Period)
 	if err != nil {
 		log.Printf("Get expenses error: %v", err)
-		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории" + category + ".")
+		msg := tgbotapi.NewMessage(chatID, "Ошибка при получении расходов по категории " + category + ".")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 		return
 	}
 
+	period := TranslatePeriod(b.Period)
 	if len(expenses) == 0 {
-		msgTxt := "За текущий месяцу у вас пока нет расходов по категории" + category + "."
+		msgTxt := "За " + period + " у вас пока нет расходов по категории" + category + "."
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
@@ -107,7 +140,8 @@ func handleListByCategory(b *Bot, chatID int64, text string) {
 		for _, itemExpense  := range expenses {
 			expensesTxtList = append(expensesTxtList, itemExpense.GetText())
 		}
-		msgTxt := "Ваши расходы за текущий месяц на " + category + ":\n" + strings.Join(expensesTxtList, "\n")
+		msgTxt := "Ваши расходы за " + period + " на " + category + ":\n"
+		msgTxt = msgTxt + strings.Join(expensesTxtList, "\n")
 		msg := tgbotapi.NewMessage(chatID, msgTxt)
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
@@ -121,6 +155,12 @@ func handleCancel(b *Bot, chatID int64) {
 		b.ResetAwaitingExpense(chatID)
 		b.AwaitingExpenses[chatID] = false
 		msg := tgbotapi.NewMessage(chatID, "Добавление расхода отменено.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	} else if b.AwaitingSettings[chatID]  {
+		b.ResetAwaitingSettings(chatID)
+		b.AwaitingSettings[chatID] = false
+		msg := tgbotapi.NewMessage(chatID, "Выход из режима настроек.")
 		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	} else {
