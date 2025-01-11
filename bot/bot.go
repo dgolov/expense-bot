@@ -134,6 +134,10 @@ func (b *Bot) HandleUpdates()  {
 				handleSetPeriod(b, chatID, "month")
 			case "cancel":
 				handleCancel(b, chatID)
+			case "budget":
+				getBudget(b, chatID)
+			case "set_budget":
+				setBudget(b, chatID)
 			default:
 				if b.checkMessage(update.Message.Text, chatID) == 1 {
 					continue

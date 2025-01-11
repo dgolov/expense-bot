@@ -84,6 +84,14 @@ func handleSave(b *Bot, text string, chatID int64) {
 	b.ResetAwaitingExpense(chatID)
 }
 
+func getBudget(b *Bot, chatID int64) {
+	log.Println("Handler get budget")
+}
+
+func setBudget(b *Bot, chatID int64) {
+	log.Println("Handler set budget")
+}
+
 func handleList(b *Bot, chatID int64) {
 	log.Println("Handler list")
 	keyboard := GetMainKb()

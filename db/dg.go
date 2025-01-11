@@ -188,3 +188,16 @@ func execListExpensesQuery(rows *sql.Rows) ([]*Expense, error) {
 	}
 	return expenses, nil
 }
+
+func (db *Database) GetBudgetByChatId(chatID int64) (*Budget, error) {
+	var budget *Budget
+	return budget, nil
+}
+
+func (db *Database) SetBudgetForChatId(chatID int64, amount int, spent int) error {
+	return nil
+}
+
+func (db *Database) UpdateBudgetForChatId(chatID int64, amount int) error {
+	return nil
+}
