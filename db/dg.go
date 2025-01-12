@@ -191,6 +191,7 @@ func execListExpensesQuery(rows *sql.Rows) ([]*Expense, error) {
 
 func (db *Database) GetBudgetByChatId(chatID int64) (*Budget, error) {
 	var budget *Budget
+
 	query := `
 		SELECT budget_amount, spent_amount
 		FROM budget 
