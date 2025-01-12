@@ -191,6 +191,31 @@ func execListExpensesQuery(rows *sql.Rows) ([]*Expense, error) {
 
 func (db *Database) GetBudgetByChatId(chatID int64) (*Budget, error) {
 	var budget *Budget
+	query := `
+		SELECT budget_amount, spent_amount
+		FROM budget 
+		WHERE chat_id = ?
+    `
+	rows, err := db.Conn.Query(query, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var amount int
+		var spent int
+
+		err := rows.Scan(&amount, &spent)
+		if err != nil {
+			return nil, err
+		}
+
+		budget = &Budget{
+			Amount: amount,
+			Spent: spent,
+		}
+	}
 	return budget, nil
 }
 
