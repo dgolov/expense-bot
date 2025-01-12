@@ -12,7 +12,7 @@ type Expense struct {
 
 type Budget struct {
 	Amount			int
-	Spent   		string
+	Spent   		int
 }
 
 
