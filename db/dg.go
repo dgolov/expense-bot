@@ -26,7 +26,13 @@ func NewDatabase(dataSourceName string) *Database {
 	return &Database{Conn: db}
 }
 
-func (db *Database) InitializeSchema()  {
+func (db *Database) InitializeSchema() {
+	go db.createExpenses()
+	go db.createBudgets()
+}
+
+func (db *Database) createExpenses() {
+	log.Println("Start createExpenses function")
 	createExpensesTable := `
 	CREATE TABLE IF NOT EXISTS expenses (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +47,25 @@ func (db *Database) InitializeSchema()  {
 	if err != nil {
 		log.Fatalf("Create expenses table error: %v", err)
 	}
-	log.Println("Initialize schema successfully")
+	log.Println("Initialize expenses schema successfully")
+}
+
+func (db *Database) createBudgets() {
+	log.Println("Start createBudgets function")
+	createBudgetsTable := `
+	CREATE TABLE IF NOT EXISTS budget (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		chat_id INTEGER NOT NULL,
+		budget_amount INTEGER NOT NULL,
+		spent_amount INTEGER DEFAULT 0
+	);
+	`
+
+	_, err := db.Conn.Exec(createBudgetsTable)
+	if err != nil {
+		log.Fatalf("Create budgets table error: %v", err)
+	}
+	log.Println("Initialize budgets schema successfully")
 }
 
 func (db *Database) AddExpenses(chatID int64, amount int, category string) error {
@@ -163,4 +187,43 @@ func execListExpensesQuery(rows *sql.Rows) ([]*Expense, error) {
 		expenses = append(expenses, expense)
 	}
 	return expenses, nil
+}
+
+func (db *Database) GetBudgetByChatId(chatID int64) (*Budget, error) {
+	var budget *Budget
+
+	query := `
+		SELECT budget_amount, spent_amount
+		FROM budget 
+		WHERE chat_id = ?
+    `
+	rows, err := db.Conn.Query(query, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var amount int
+		var spent int
+
+		err := rows.Scan(&amount, &spent)
+		if err != nil {
+			return nil, err
+		}
+
+		budget = &Budget{
+			Amount: amount,
+			Spent: spent,
+		}
+	}
+	return budget, nil
+}
+
+func (db *Database) SetBudgetForChatId(chatID int64, amount int, spent int) error {
+	return nil
+}
+
+func (db *Database) UpdateBudgetForChatId(chatID int64, amount int) error {
+	return nil
 }

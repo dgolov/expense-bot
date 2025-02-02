@@ -10,6 +10,11 @@ type Expense struct {
 	CreatedAt       string
 }
 
+type Budget struct {
+	Amount			int
+	Spent   		int
+}
+
 
 func (exp *Expense) GetText() string {
 	return fmt.Sprintf("%d руб. (%s)", exp.Amount, exp.CreatedAt)
