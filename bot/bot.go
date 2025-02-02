@@ -137,9 +137,13 @@ func (b *Bot) HandleUpdates()  {
 			case "budget":
 				getBudget(b, chatID)
 			case "set_budget":
-				setBudget(b, chatID)
+				setBudget(b, chatID, "")
 			default:
 				if b.checkMessage(update.Message.Text, chatID) == 1 {
+					continue
+				}
+				if strings.Contains(strings.ToLower(update.Message.Text), "установи бюджет") {
+					setBudget(b, chatID, update.Message.Text)
 					continue
 				}
 				if b.AwaitingExpenses[chatID] {
@@ -176,6 +180,9 @@ func (b *Bot) checkMessage(text string, chatID int64) int8 {
 		return 1
 	case "месяц":
 		handleSetPeriod(b, chatID, "month")
+		return 1
+	case "бюджет":
+		getBudget(b, chatID)
 		return 1
 	}
 
