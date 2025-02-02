@@ -13,6 +13,7 @@ type Bot struct {
 	API				  *tgbotapi.BotAPI
 	AwaitingExpenses  map[int64]bool
 	AwaitingSettings  map[int64]bool
+	AwaitingBudget    map[int64]bool
 	Timers            map[int64]*time.Timer
 	TimeoutMinutes    int
 	Storage 	 	  *db.Database
@@ -32,6 +33,7 @@ func NewBot(botToken string, debugMode bool, timeoutMinutes int, storage *db.Dat
 		API:			  botAPI,
 		AwaitingExpenses: make(map[int64]bool),
 		AwaitingSettings: make(map[int64]bool),
+		AwaitingBudget:   make(map[int64]bool),
 		Timers:           make(map[int64]*time.Timer),
 		TimeoutMinutes:   timeoutMinutes,
 		Storage:   		  storage,
@@ -50,7 +52,9 @@ func (b *Bot) SetAwaitingExpense(chatID int64)  {
 	timeoutDuration := time.Duration(b.TimeoutMinutes) * time.Minute
 	b.Timers[chatID] = time.AfterFunc(timeoutDuration, func() {
 		b.ResetAwaitingExpense(chatID)
+		keyboard := GetMainKb()
 		msg := tgbotapi.NewMessage(chatID, "Время ожидания истекло. Попробуйте снова отправить команду /add.")
+		msg.ReplyMarkup = keyboard
 		b.API.Send(msg)
 	})
 }
@@ -66,7 +70,25 @@ func (b *Bot) SetAwaitingSettings(chatID int64)  {
 	timeoutDuration := time.Duration(b.TimeoutMinutes) * time.Minute
 	b.Timers[chatID] = time.AfterFunc(timeoutDuration, func() {
 		b.ResetAwaitingSettings(chatID)
+		keyboard := GetMainKb()
 		msg := tgbotapi.NewMessage(chatID, "Время ожидания истекло. Попробуйте снова отправить команду /settings.")
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+	})
+}
+
+func (b *Bot) SetAwaitingBudget(chatID int64)  {
+	log.Printf("SetAwaitingBudget for %d", chatID)
+	b.AwaitingBudget[chatID] = true
+
+	if timer, exists := b.Timers[chatID]; exists {
+		timer.Stop()
+	}
+
+	timeoutDuration := time.Duration(b.TimeoutMinutes) * time.Minute
+	b.Timers[chatID] = time.AfterFunc(timeoutDuration, func() {
+		b.ResetAwaitingExpense(chatID)
+		msg := tgbotapi.NewMessage(chatID, "Время ожидания истекло. Попробуйте снова отправить команду /set_budget.")
 		b.API.Send(msg)
 	})
 }
@@ -95,6 +117,17 @@ func (b *Bot) ResetAwaitingSettings(chatID int64) {
 	log.Printf("ResetAwaitingSettings for %d", chatID)
 
 	delete(b.AwaitingSettings, chatID)
+
+	if timer, exists := b.Timers[chatID]; exists {
+		timer.Stop()
+		delete(b.Timers, chatID)
+	}
+}
+
+func (b *Bot) ResetAwaitingBudget(chatID int64) {
+	log.Printf("ResetAwaitingBudget for %d", chatID)
+
+	delete(b.AwaitingBudget, chatID)
 
 	if timer, exists := b.Timers[chatID]; exists {
 		timer.Stop()
@@ -142,7 +175,13 @@ func (b *Bot) HandleUpdates()  {
 				if b.checkMessage(update.Message.Text, chatID) == 1 {
 					continue
 				}
-				if strings.Contains(strings.ToLower(update.Message.Text), "установи бюджет") {
+				if msg := strings.ToLower(update.Message.Text);
+					strings.Contains(msg, "установи бюджет") ||
+						strings.Contains(msg, "установить бюджет") {
+					setBudget(b, chatID, update.Message.Text)
+					continue
+				}
+				if b.AwaitingBudget[chatID] {
 					setBudget(b, chatID, update.Message.Text)
 					continue
 				}
@@ -183,6 +222,9 @@ func (b *Bot) checkMessage(text string, chatID int64) int8 {
 		return 1
 	case "бюджет":
 		getBudget(b, chatID)
+		return 1
+	case "установить бюджет":
+		setBudget(b, chatID, "")
 		return 1
 	}
 
