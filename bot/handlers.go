@@ -30,7 +30,10 @@ func handleSettings(b *Bot, chatID int64)  {
 	log.Println("Handler settings")
 	keyboard := SettingsKb()
 	b.SetAwaitingSettings(chatID)
-	msgText := "Укажите период за который нужно учитывать расходы.\nЕсли передумали, отправьте /cancel."
+
+	msgText := "\nВы вошли в режим настроек.\n"
+	msgText += "\nУкажите период за который нужно учитывать расходы.\nУстановите или измените ваш бюджет.\n"
+	msgText += "\nЕсли передумали и хотите выйти, отправьте /cancel."
 	msg := tgbotapi.NewMessage(chatID, msgText)
 	msg.ReplyMarkup = keyboard
 	b.API.Send(msg)
@@ -86,10 +89,79 @@ func handleSave(b *Bot, text string, chatID int64) {
 
 func getBudget(b *Bot, chatID int64) {
 	log.Println("Handler get budget")
+	keyboard := GetMainKb()
+	var msgTxt string
+
+	budget, err := b.Storage.GetBudgetByChatId(chatID)
+	if err != nil {
+		log.Printf("Get budget error: %v", err)
+		msgTxt = "Ошибка при получении бюджета."
+	} else {
+		log.Printf("Get budget: %v", budget)
+		if budget == nil {
+			msgTxt = "Бюджет не установлен."
+		} else {
+			msgTxt = "Бюджет: " + strconv.Itoa(budget.Amount) + "\nПотрачено: "  + strconv.Itoa(budget.Spent)
+			if budget.Spent > budget.Amount {
+				msgTxt += "\nВнимание! Ваши расходы превышают бюджет!"
+			}
+		}
+	}
+
+	msg := tgbotapi.NewMessage(chatID, msgTxt)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
 }
 
-func setBudget(b *Bot, chatID int64) {
-	log.Println("Handler set budget")
+func setBudget(b *Bot, chatID int64, text string) {
+	log.Printf("Handler set budget. Text - %s", text)
+
+	var msgTxt string
+	var amount int
+	var err error
+
+	if text == "" {
+		keyboard := GetCancelKb()
+		b.SetAwaitingBudget(chatID)
+		msgText := "Укажите сумму бюджета."
+		msg := tgbotapi.NewMessage(chatID, msgText)
+		msg.ReplyMarkup = keyboard
+		b.API.Send(msg)
+		return
+	}
+
+	keyboard := GetMainKb()
+
+	if b.AwaitingBudget[chatID] {
+		b.ResetAwaitingBudget(chatID)
+		b.AwaitingExpenses[chatID] = false
+		amount, err = strconv.Atoi(text)
+	} else {
+		parts := strings.SplitN(text, " ", 3)
+		amount, err = strconv.Atoi(parts[2])
+		log.Printf("Handler set budget. Amount - %d", amount)
+	}
+
+	if err != nil {
+		msgText := "Ошибка: сумма бюджета должна быть числом."
+		msgTxt += "\nЕсли передумали, отправьте /cancel."
+		msg := tgbotapi.NewMessage(chatID, msgText)
+		b.API.Send(msg)
+		return
+	}
+
+	err = b.Storage.SetBudgetForChatId(chatID, amount)
+	if err != nil {
+		log.Printf("Set budget error: %v", err)
+		msgTxt = "Ошибка установки бюджета."
+	} else {
+		log.Println("Set budget successfully")
+		msgTxt = "Бюджет успешно установлен."
+	}
+
+	msg := tgbotapi.NewMessage(chatID, msgTxt)
+	msg.ReplyMarkup = keyboard
+	b.API.Send(msg)
 }
 
 func handleList(b *Bot, chatID int64) {
